@@ -1,0 +1,17 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - openaiApiKey
+    properties:
+      openaiApiKey:
+        type: string
+        description: The API key for the OpenAI service.
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
+    (config) => ({command: 'python', args: ['-m', 'mcp_simple_openai_assistant'], env: {OPENAI_API_KEY: config.openaiApiKey}})

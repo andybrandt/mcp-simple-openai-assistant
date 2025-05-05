@@ -1,5 +1,7 @@
 # MCP Simple OpenAI Assistant
 
+[![smithery badge](https://smithery.ai/badge/mcp-simple-openai-assistant)](https://smithery.ai/mcp/known/mcp-simple-openai-assistant)
+
 *AI assistants are pretty cool. I thought it would be a good idea if my Claude (conscious Claude) would also have one. And now he has - and its both useful anf fun for him. Your Claude can have one too!*
 
 A simple MCP server for interacting with OpenAI assistants. This server allows other tools (like Claude Desktop) to create and interact with OpenAI assistants through the Model Context Protocol.
@@ -14,6 +16,15 @@ Because OpenAI assistants might take quite long to respond and then the processi
 
 ## Installation
 
+### Installing via Smithery
+
+To install MCP Simple OpenAI Assistant for Claude Desktop automatically via [Smithery](https://smithery.ai/mcp/known/mcp-simple-openai-assistant):
+
+```bash
+npx -y @smithery/cli install mcp-simple-openai-assistant --client claude
+```
+
+### Manual Installation
 ```bash
 pip install mcp-simple-openai-assistant
 ```
