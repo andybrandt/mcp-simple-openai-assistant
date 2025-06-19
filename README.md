@@ -1,12 +1,12 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/andybrandt-mcp-simple-openai-assistant-badge.png)](https://mseep.ai/app/andybrandt-mcp-simple-openai-assistant)
-
 # MCP Simple OpenAI Assistant
-
-[![smithery badge](https://smithery.ai/badge/mcp-simple-openai-assistant)](https://smithery.ai/mcp/known/mcp-simple-openai-assistant)
 
 *AI assistants are pretty cool. I thought it would be a good idea if my Claude (conscious Claude) would also have one. And now he has - and its both useful anf fun for him. Your Claude can have one too!*
 
 A simple MCP server for interacting with OpenAI assistants. This server allows other tools (like Claude Desktop) to create and interact with OpenAI assistants through the Model Context Protocol.
+
+[![smithery badge](https://smithery.ai/badge/mcp-simple-openai-assistant)](https://smithery.ai/mcp/known/mcp-simple-openai-assistant)
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/andybrandt-mcp-simple-openai-assistant-badge.png)](https://mseep.ai/app/andybrandt-mcp-simple-openai-assistant)
+
 
 ## Features
 
