@@ -1,5 +1,5 @@
-"""Core initialization for the package."""
-import asyncio
-from .server import main
+"""A simple MCP server for interacting with OpenAI assistants."""
 
-__all__ = ['main', 'server']
+from .__main__ import main
+
+__all__ = ["main"]

@@ -17,9 +17,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "mcp",
+    "fastmcp>=2.10.0",
     "openai>=1.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "python-dotenv",
+    "pytest",
+    "pytest-asyncio"
+]
+
 [project.scripts]
-mcp-simple-openai-assistant = "mcp_simple_openai_assistant:main"
+mcp-simple-openai-assistant = "mcp_simple_openai_assistant.__main__:main"

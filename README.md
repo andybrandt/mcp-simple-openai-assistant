@@ -40,7 +40,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 ```json
 {
   "mcpServers": {
-    "openai-assistant": {
+    "simple-openai-assistant": {
       "command": "python",
       "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
@@ -55,7 +55,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 
 ```json
 "mcpServers": {
-  "openai-assistant": {
+  "simple-openai-assistant": {
     "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
       "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
@@ -79,8 +79,8 @@ The server handles all OpenAI API communication, including managing assistants, 
 
 ## TODO
 
- - Add a way to handle threads - store threads IDs for potential re-use 
- - Add a way to better handle long OpenAI responses which now seem to sometimes trigger timeouts 
+- [ ] **Implement Streaming Responses:** Replace the current `send_message`/`check_response` polling mechanism with a single, streaming `run_thread` tool. This will provide real-time feedback and a better user experience for long-running assistant tasks.
+- [ ] **Add Thread Management:** Introduce a way to name and persist thread IDs locally, allowing for easier reuse of conversations.
 
 ## Development
 
@@ -89,5 +89,5 @@ To install for development:
 ```bash
 git clone https://github.com/andybrandt/mcp-simple-openai-assistant
 cd mcp-simple-openai-assistant
-pip install -e .
+pip install -e '.[dev]'
 ```
