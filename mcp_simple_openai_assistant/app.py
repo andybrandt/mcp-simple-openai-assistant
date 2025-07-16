@@ -55,13 +55,13 @@ async def new_thread() -> str:
 
 @app.tool(
     annotations={
-        "title": "Run Assistant and Stream Response",
+        "title": "Ask Assistant in Thread and Stream Response",
         "readOnlyHint": False
     }
 )
-async def run_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
+async def ask_assistant_in_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
     """
-    Sends a message to an assistant and streams the response in real-time.
+    Sends a message to an assistant within a specific thread and streams the response.
     This provides progress updates and the final message in a single call.
     """
     if not manager:

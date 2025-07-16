@@ -72,8 +72,8 @@ def client(api_key: str) -> Client:
         if status == "completed": return response
         return f"Run status is: {status}"
 
-    @test_app.tool(annotations={"title": "Run Assistant and Stream Response", "readOnlyHint": False})
-    async def run_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
+    @test_app.tool(annotations={"title": "Ask Assistant in Thread and Stream Response", "readOnlyHint": False})
+    async def ask_assistant_in_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
         final_message = ""
         await ctx.report_progress(progress=0, message="Starting assistant run...")
         async for event in test_manager.run_thread(thread_id, assistant_id, message):
@@ -168,7 +168,7 @@ async def test_streaming_conversation_flow(client: Client, test_assistant_name: 
 
         # 3. Call run_thread and stream the response
         final_result = await client.call_tool(
-            "run_thread",
+            "ask_assistant_in_thread",
             {
                 "thread_id": thread_id,
                 "assistant_id": assistant_id,
