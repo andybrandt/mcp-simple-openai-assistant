@@ -5,7 +5,7 @@ to expose the business logic from the AssistantManager as MCP tools.
 """
 
 from textwrap import dedent
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 from .assistant_manager import AssistantManager
 
@@ -55,45 +55,35 @@ async def new_thread() -> str:
 
 @app.tool(
     annotations={
-        "title": "Send Message and Start Run",
+        "title": "Run Assistant and Stream Response",
         "readOnlyHint": False
     }
 )
-async def send_message(thread_id: str, assistant_id: str, message: str) -> str:
+async def run_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
     """
-    Send a message to an assistant and start processing.
-    The response will not be immediately available - use check_response to get it when ready.
-    """
-    if not manager:
-        raise ToolError("AssistantManager not initialized.")
-    try:
-        run = await manager.send_message(thread_id, assistant_id, message)
-        return f"Message sent. Run {run.id} started in thread {thread_id}. Use check_response to get the result."
-    except Exception as e:
-        raise ToolError(f"Failed to send message: {e}")
-
-
-@app.tool(
-    annotations={
-        "title": "Check Assistant Response",
-        "readOnlyHint": True
-    }
-)
-async def check_response(thread_id: str) -> str:
-    """
-    Check if an assistant's response is ready in the thread.
-    Returns 'in_progress' status or the actual response if ready.
+    Sends a message to an assistant and streams the response in real-time.
+    This provides progress updates and the final message in a single call.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
+
+    final_message = ""
     try:
-        status, response = await manager.check_response(thread_id)
-        if status == "completed":
-            return response
-        else:
-            return f"Run status is: {status}. Please try again shortly."
+        await ctx.report_progress(progress=0, message="Starting assistant run...")
+        async for event in manager.run_thread(thread_id, assistant_id, message):
+            if event.event == 'thread.message.delta':
+                text_delta = event.data.delta.content[0].text
+                final_message += text_delta.value
+                await ctx.report_progress(progress=50, message=f"Assistant writing: {final_message}")
+            elif event.event == 'thread.run.step.created':
+                await ctx.report_progress(progress=25, message="Assistant is performing a step...")
+        
+        await ctx.report_progress(progress=100, message="Run complete.")
+        return final_message
+
     except Exception as e:
-        raise ToolError(f"Failed to check response: {e}")
+        raise ToolError(f"An error occurred during the run: {e}")
+
 
 @app.tool(
     annotations={

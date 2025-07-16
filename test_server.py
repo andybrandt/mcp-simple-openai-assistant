@@ -4,8 +4,7 @@ import os
 import asyncio
 import pytest
 from dotenv import load_dotenv
-from fastmcp import Client, FastMCP
-from mcp_simple_openai_assistant.app import app as mcp_app, manager
+from fastmcp import Client, FastMCP, Context
 from mcp_simple_openai_assistant.assistant_manager import AssistantManager
 
 # Load environment variables for the test session
@@ -73,6 +72,21 @@ def client(api_key: str) -> Client:
         if status == "completed": return response
         return f"Run status is: {status}"
 
+    @test_app.tool(annotations={"title": "Run Assistant and Stream Response", "readOnlyHint": False})
+    async def run_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
+        final_message = ""
+        await ctx.report_progress(progress=0, message="Starting assistant run...")
+        async for event in test_manager.run_thread(thread_id, assistant_id, message):
+            if event.event == 'thread.message.delta':
+                text_delta = event.data.delta.content[0].text
+                final_message += text_delta.value
+                await ctx.report_progress(progress=50, message=f"Assistant writing: {final_message}")
+            elif event.event == 'thread.run.step.created':
+                await ctx.report_progress(progress=25, message="Assistant is performing a step...")
+        
+        await ctx.report_progress(progress=100, message="Run complete.")
+        return final_message
+
     return Client(test_app)
 
 
@@ -113,20 +127,24 @@ async def test_create_and_retrieve_assistant(client: Client, test_assistant_name
         assert f"Name: {test_assistant_name}" in retrieve_result.data
 
 @pytest.mark.asyncio
-async def test_full_conversation_flow(client: Client, test_assistant_name: str):
+async def test_streaming_conversation_flow(client: Client, test_assistant_name: str):
     """
-    Tests the full, legacy conversation flow:
+    Tests the new streaming conversation flow:
     1. Find or create the test assistant.
     2. Create a new thread.
-    3. Send a message.
-    4. Poll with check_response until the response is complete.
+    3. Call `run_thread` and verify progress messages are received.
     """
+    # Use a list to capture progress messages from the handler
+    progress_updates = []
+    async def progress_handler(progress: int, total: int | None, message: str | None):
+        if message:
+            progress_updates.append(message)
+
     async with client:
         # 1. Find or create the test assistant
         list_res = await client.call_tool("list_assistants", {"limit": 100})
         
         assistant_id = None
-        # Find the assistant in the list and parse its ID
         for block in list_res.data.split('---'):
             if f"Name: {test_assistant_name}" in block:
                 lines = block.strip().split('\\n')
@@ -148,23 +166,19 @@ async def test_full_conversation_flow(client: Client, test_assistant_name: str):
         thread_id = thread_res.data.split("ID: ")[-1]
         assert thread_id
 
-        # 3. Send a message
-        await client.call_tool(
-            "send_message",
+        # 3. Call run_thread and stream the response
+        final_result = await client.call_tool(
+            "run_thread",
             {
                 "thread_id": thread_id,
                 "assistant_id": assistant_id,
-                "message": "Hello! What is 2 + 2?"
-            }
+                "message": "Hello! What is 2 + 2? Please explain your steps."
+            },
+            progress_handler=progress_handler
         )
-        
-        # 4. Poll for response
-        for _ in range(10): # Poll up to 10 times
-            check_res = await client.call_tool("check_response", {"thread_id": thread_id})
-            if not str(check_res.data).startswith("Run status is:"):
-                # We got a final answer
-                assert "4" in str(check_res.data) or "four" in str(check_res.data).lower()
-                return
-            await asyncio.sleep(2) # Wait before polling again
 
-        pytest.fail("Assistant response timed out after multiple checks.") 
+        # 4. Assertions
+        assert "4" in final_result.data or "four" in final_result.data.lower()
+        assert len(progress_updates) > 2  # Should have at least start, step, and end
+        assert "Starting assistant run..." in progress_updates[0]
+        assert "Run complete." in progress_updates[-1] 

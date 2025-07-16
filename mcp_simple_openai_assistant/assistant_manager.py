@@ -69,45 +69,28 @@ class AssistantManager:
             **update_params
         )
 
-    async def send_message(
+    async def run_thread(
         self,
         thread_id: str,
         assistant_id: str,
         message: str
-    ) -> Run:
-        """Send a message to an assistant and start a processing run."""
+    ):
+        """
+        Sends a message to a thread and streams the assistant's response.
+        This is an async generator that yields events from the run.
+        """
+        # Add the user's message to the thread
         self.client.beta.threads.messages.create(
             thread_id=thread_id,
-            content=message,
-            role="user"
+            role="user",
+            content=message
         )
-        run = self.client.beta.threads.runs.create(
+
+        # Stream the assistant's response
+        stream = self.client.beta.threads.runs.create(
             thread_id=thread_id,
-            assistant_id=assistant_id
+            assistant_id=assistant_id,
+            stream=True
         )
-        return run
-
-    async def check_response(self, thread_id: str) -> tuple[RunStatus, Optional[str]]:
-        """Check the status of the latest run and get the response if completed."""
-        runs = self.client.beta.threads.runs.list(thread_id=thread_id, limit=1)
-        if not runs.data:
-            raise ValueError(f"No runs found in thread {thread_id}")
-
-        latest_run = runs.data[0]
-
-        if latest_run.status == "completed":
-            messages = self.client.beta.threads.messages.list(
-                thread_id=thread_id,
-                order="desc",
-                limit=1
-            )
-            if not messages.data:
-                raise ValueError("No response message found")
-
-            message = messages.data[0]
-            if not message.content or not hasattr(message.content[0], 'text'):
-                raise ValueError("Response message has no text content")
-
-            return "completed", message.content[0].text.value
-        else:
-            return latest_run.status, None 
+        for event in stream:
+            yield event 

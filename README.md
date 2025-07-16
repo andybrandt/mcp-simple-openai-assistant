@@ -40,7 +40,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 ```json
 {
   "mcpServers": {
-    "simple-openai-assistant": {
+    "openai-assistant": {
       "command": "python",
       "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
@@ -55,7 +55,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 
 ```json
 "mcpServers": {
-  "simple-openai-assistant": {
+  "openai-assistant": {
     "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
       "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
@@ -72,15 +72,15 @@ Once configured, the server provides tools to:
 1. Create new assistants with specific instructions
 2. List existing assistants
 3. Modify assistants
-2. Start new conversation threads
-3. Send messages and receive responses
+4. Start new conversation threads
+5. Stream responses from an assistant in real-time using the `run_thread` tool.
 
 The server handles all OpenAI API communication, including managing assistants, threads, and message handling.
 
 ## TODO
 
-- [ ] **Implement Streaming Responses:** Replace the current `send_message`/`check_response` polling mechanism with a single, streaming `run_thread` tool. This will provide real-time feedback and a better user experience for long-running assistant tasks.
 - [ ] **Add Thread Management:** Introduce a way to name and persist thread IDs locally, allowing for easier reuse of conversations.
+- [ ] **Explore Resource Support:** Add the ability to upload files and use them with assistants.
 
 ## Development
 
