@@ -11,9 +11,9 @@ authors = [
 description = "A simple MCP server for interacting with OpenAI assistants"
 readme = "README.md"
 requires-python = ">=3.10"
+license="MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
