@@ -1,5 +1,3 @@
 """A simple MCP server for interacting with OpenAI assistants."""
 
-from .__main__ import main
-
-__all__ = ["main"]
+# This file can be empty. Its presence indicates that this directory is a Python package.
