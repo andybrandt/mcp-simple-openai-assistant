@@ -1,8 +1,11 @@
 """Main entry point for the MCP OpenAI Assistant server."""
 import os
 import sys
+from pathlib import Path
 from . import app
 from .assistant_manager import AssistantManager
+
+DEFAULT_DB_PATH = str(Path.home() / ".mcp_simple_openai_assistant" / "threads.db")
 
 def main():
     """Initialize manager and run the MCP server."""
@@ -15,8 +18,11 @@ def main():
         )
         sys.exit(1)
 
-    # Initialize the manager with the explicit API key
-    manager = AssistantManager(api_key=api_key)
+    # Use DB_PATH from environment or a default value
+    db_path = os.getenv("DB_PATH", DEFAULT_DB_PATH)
+
+    # Initialize the manager with the explicit API key and db_path
+    manager = AssistantManager(api_key=api_key, db_path=db_path)
 
     # Assign the initialized manager to the app module
     app.manager = manager

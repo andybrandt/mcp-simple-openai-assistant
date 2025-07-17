@@ -5,6 +5,7 @@ to expose the business logic from the AssistantManager as MCP tools.
 """
 
 from textwrap import dedent
+from typing import Optional
 from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 from .assistant_manager import AssistantManager
@@ -38,20 +39,87 @@ async def create_assistant(name: str, instructions: str, model: str = "gpt-4o") 
         raise ToolError(f"Failed to create assistant: {e}")
 
 @app.tool(
-    annotations={
-        "title": "Create New Thread",
-        "readOnlyHint": False
-    }
+    annotations={"title": "Create New Assistant Thread", "readOnlyHint": False}
 )
-async def new_thread() -> str:
-    """Creates a new conversation thread for interacting with an assistant."""
+async def create_new_assistant_thread(
+    name: str, description: Optional[str] = None
+) -> str:
+    """
+    Creates a new, persistent conversation thread with a user-defined name and
+    description for easy identification and reuse.
+    """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
     try:
-        result = await manager.new_thread()
-        return f"Created new thread with ID: {result.id}"
+        thread = await manager.create_new_assistant_thread(name, description)
+        return f"Created new thread '{name}' with ID: {thread.id}"
     except Exception as e:
         raise ToolError(f"Failed to create thread: {e}")
+
+
+@app.tool(annotations={"title": "List Managed Threads", "readOnlyHint": True})
+async def list_threads() -> str:
+    """
+    Lists all locally managed conversation threads from the database.
+    Returns a list of threads with their ID, name, description, and last used time.
+    """
+    if not manager:
+        raise ToolError("AssistantManager not initialized.")
+    try:
+        threads = manager.list_threads()
+        if not threads:
+            return "No managed threads found."
+
+        thread_list = [
+            dedent(f"""
+            Thread ID: {t['thread_id']}
+            Name: {t['name']}
+            Description: {t['description']}
+            Last Used: {t['last_used_at']}
+            """)
+            for t in threads
+        ]
+        return "Managed Threads:\\n\\n" + "\\n---\\n".join(thread_list)
+    except Exception as e:
+        raise ToolError(f"Failed to list threads: {e}")
+
+
+@app.tool(annotations={"title": "Update Managed Thread", "readOnlyHint": False})
+async def update_thread(
+    thread_id: str, name: Optional[str] = None, description: Optional[str] = None
+) -> str:
+    """
+    Updates the name and/or description of a managed conversation thread.
+    Both the local database and the OpenAI thread object are updated.
+    """
+    if not manager:
+        raise ToolError("AssistantManager not initialized.")
+    if not name and not description:
+        raise ToolError("You must provide either a new name or a new description.")
+    try:
+        await manager.update_thread(thread_id, name, description)
+        return f"Successfully updated thread {thread_id}."
+    except Exception as e:
+        raise ToolError(f"Failed to update thread {thread_id}: {e}")
+
+
+@app.tool(annotations={"title": "Delete Managed Thread", "readOnlyHint": False})
+async def delete_thread(thread_id: str) -> str:
+    """
+    Deletes a conversation thread from both OpenAI's servers and the local database.
+    This action is irreversible.
+    """
+    if not manager:
+        raise ToolError("AssistantManager not initialized.")
+    try:
+        result = await manager.delete_thread(thread_id)
+        if result.deleted:
+            return f"Successfully deleted thread {thread_id}."
+        else:
+            return f"Failed to delete thread {thread_id} on the server."
+    except Exception as e:
+        raise ToolError(f"Failed to delete thread {thread_id}: {e}")
+
 
 @app.tool(
     annotations={

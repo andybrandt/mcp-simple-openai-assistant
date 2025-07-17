@@ -18,10 +18,14 @@ This server provides a suite of tools to manage and interact with OpenAI Assista
 -   **`list_assistants`**: (List OpenAI Assistants) - List all available assistants associated with your API key.
 -   **`retrieve_assistant`**: (Retrieve OpenAI Assistant) - Get detailed information about a specific assistant.
 -   **`update_assistant`**: (Update OpenAI Assistant) - Modify an existing assistant's name, instructions, or model.
--   **`new_thread`**: (Create New Thread) - Creates a new, empty conversation thread.
+-   **`create_new_assistant_thread`**: (Create New Assistant Thread) - Creates a new, persistent conversation thread with a user-defined name and description for easy identification and reuse. This is the recommended way to start a new conversation.
+-   **`list_threads`**: (List Managed Threads) - Lists all locally managed conversation threads from the database, showing their ID, name, description, and last used time.
+-   **`delete_thread`**: (Delete Managed Thread) - Deletes a conversation thread from both OpenAI's servers and the local database.
 -   **`ask_assistant_in_thread`**: (Ask Assistant in Thread and Stream Response) - The primary tool for conversation. Sends a message to an assistant within a thread and streams the response back in real-time.
 
 Because OpenAI assistants might take quite long to respond, this server uses a streaming approach for the main `ask_assistant_in_thread` tool. This provides real-time progress updates to the client and avoids timeouts.
+
+The server now includes local persistence for threads, which is a significant improvement. Since the OpenAI API does not allow listing threads, this server now manages them for you by storing their IDs and metadata in a local SQLite database. This allows you to easily find, reuse, and manage your conversation threads across sessions.
 
 ## Installation
 
@@ -75,11 +79,14 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 
 ## Usage
 
-Once configured, you can use the tools listed above to manage your assistants and conversations. The primary workflow is to create or retrieve an assistant and a thread, and then use `ask_assistant_in_thread` to interact with it.
+Once configured, you can use the tools listed above to manage your assistants and conversations. The primary workflow is to:
+1. Use `create_new_assistant_thread` to start a new, named conversation.
+2. Use `list_threads` to find the ID of a thread you want to continue.
+3. Use `ask_assistant_in_thread` to interact with your chosen assistant in that thread.
 
 ## TODO
 
-- [ ] **Add Thread Management:** Introduce a way to name and persist thread IDs locally, allowing for easier reuse of conversations.
+- [x] **Add Thread Management:** Introduce a way to name and persist thread IDs locally, allowing for easier reuse of conversations.
 - [ ] **Explore Resource Support:** Add the ability to upload files and use them with assistants.
 
 ## Development

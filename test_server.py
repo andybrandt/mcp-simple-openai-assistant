@@ -3,9 +3,12 @@
 import os
 import asyncio
 import pytest
+from unittest.mock import AsyncMock, patch
 from dotenv import load_dotenv
 from fastmcp import Client, FastMCP, Context
 from mcp_simple_openai_assistant.assistant_manager import AssistantManager
+from textwrap import dedent
+from typing import Optional
 
 # Load environment variables for the test session
 load_dotenv()
@@ -35,7 +38,8 @@ def client(api_key: str) -> Client:
     test_app = FastMCP(name="openai-assistant-test")
     
     # Initialize a new manager with the API key for this test
-    test_manager = AssistantManager(api_key=api_key)
+    # The user has specified to use a memory DB for these tests.
+    test_manager = AssistantManager(api_key=api_key, db_path=":memory:")
 
     # This is a bit of a workaround to register tools on a new app instance
     # within a test. We define the tools inside the fixture.
@@ -43,8 +47,14 @@ def client(api_key: str) -> Client:
     async def list_assistants(limit: int = 20) -> str:
         assistants = await test_manager.list_assistants(limit)
         if not assistants: return "No assistants found."
-        assistant_list = [f"ID: {a.id}, Name: {a.name}" for a in assistants]
-        return "Available Assistants:\n" + "\n".join(assistant_list)
+        assistant_list = [
+            dedent(f"""
+            ID: {a.id}
+            Name: {a.name}
+            Model: {a.model}""")
+            for a in assistants
+        ]
+        return "Available Assistants:\\n\\n" + "\\n---\\n".join(assistant_list)
 
     @test_app.tool(annotations={"title": "Create OpenAI Assistant", "readOnlyHint": False})
     async def create_assistant(name: str, instructions: str, model: str = "gpt-4o") -> str:
@@ -54,23 +64,44 @@ def client(api_key: str) -> Client:
     @test_app.tool(annotations={"title": "Retrieve OpenAI Assistant", "readOnlyHint": True})
     async def retrieve_assistant(assistant_id: str) -> str:
         result = await test_manager.retrieve_assistant(assistant_id)
-        return f"ID: {result.id}\nName: {result.name}\nInstructions: {result.instructions}"
+        return dedent(f"""
+        Assistant Details:
+        ID: {result.id}
+        Name: {result.name}
+        Model: {result.model}
+        Instructions: {result.instructions}
+        """)
     
-    @test_app.tool(annotations={"title": "Create New Thread", "readOnlyHint": False})
-    async def new_thread() -> str:
-        result = await test_manager.new_thread()
-        return f"Created new thread with ID: {result.id}"
+    @test_app.tool(annotations={"title": "Create New Assistant Thread", "readOnlyHint": False})
+    async def create_new_assistant_thread(
+        name: str, description: Optional[str] = None
+    ) -> str:
+        thread = await test_manager.create_new_assistant_thread(name, description)
+        return f"Created new thread '{name}' with ID: {thread.id}"
 
-    @test_app.tool(annotations={"title": "Send Message and Start Run", "readOnlyHint": False})
-    async def send_message(thread_id: str, assistant_id: str, message: str) -> str:
-        run = await test_manager.send_message(thread_id, assistant_id, message)
-        return f"Message sent. Run {run.id} started."
+    @test_app.tool(annotations={"title": "List Managed Threads", "readOnlyHint": True})
+    async def list_threads() -> str:
+        threads = test_manager.list_threads()
+        if not threads:
+            return "No managed threads found."
+        thread_list = [
+            dedent(f"""
+            Thread ID: {t['thread_id']}
+            Name: {t['name']}
+            Description: {t['description']}
+            Last Used: {t['last_used_at']}
+            """)
+            for t in threads
+        ]
+        return "Managed Threads:\\n\\n" + "\\n---\\n".join(thread_list)
 
-    @test_app.tool(annotations={"title": "Check Assistant Response", "readOnlyHint": True})
-    async def check_response(thread_id: str) -> str:
-        status, response = await test_manager.check_response(thread_id)
-        if status == "completed": return response
-        return f"Run status is: {status}"
+    @test_app.tool(annotations={"title": "Delete Managed Thread", "readOnlyHint": False})
+    async def delete_thread(thread_id: str) -> str:
+        result = await test_manager.delete_thread(thread_id)
+        if result.deleted:
+            return f"Successfully deleted thread {thread_id}."
+        else:
+            return f"Failed to delete thread {thread_id} on the server."
 
     @test_app.tool(annotations={"title": "Ask Assistant in Thread and Stream Response", "readOnlyHint": False})
     async def ask_assistant_in_thread(thread_id: str, assistant_id: str, message: str, ctx: Context) -> str:
@@ -150,7 +181,7 @@ async def test_streaming_conversation_flow(client: Client, test_assistant_name: 
                 lines = block.strip().split('\\n')
                 for line in lines:
                     if line.startswith("ID: "):
-                        assistant_id = line.split("ID: ")[1]
+                        assistant_id = line.split("ID: ")[1].strip()
                         break
             if assistant_id:
                 break
@@ -162,7 +193,7 @@ async def test_streaming_conversation_flow(client: Client, test_assistant_name: 
         assert assistant_id
 
         # 2. Create a thread
-        thread_res = await client.call_tool("new_thread")
+        thread_res = await client.call_tool("create_new_assistant_thread", {"name": "Test Thread", "description": "A test thread"})
         thread_id = thread_res.data.split("ID: ")[-1]
         assert thread_id
 
@@ -179,6 +210,48 @@ async def test_streaming_conversation_flow(client: Client, test_assistant_name: 
 
         # 4. Assertions
         assert "4" in final_result.data or "four" in final_result.data.lower()
-        assert len(progress_updates) > 2  # Should have at least start, step, and end
+        assert len(progress_updates) > 2
         assert "Starting assistant run..." in progress_updates[0]
-        assert "Run complete." in progress_updates[-1] 
+        assert "Run complete." in progress_updates[-1]
+
+@pytest.mark.asyncio
+async def test_thread_management_lifecycle(client: Client):
+    """
+    Tests the full lifecycle of a managed thread by making real API calls:
+    1. Create a new thread via the tool.
+    2. Verify it's in the local database.
+    3. Delete the thread via the tool.
+    4. Verify it has been removed from the local database.
+    """
+    thread_id = None
+    thread_name = "Test Full Lifecycle"
+    try:
+        async with client:
+            # 1. Verify no threads with this name exist initially
+            initial_list = await client.call_tool("list_threads")
+            assert thread_name not in initial_list.data
+
+            # 2. Create a new thread (real API call)
+            create_result = await client.call_tool(
+                "create_new_assistant_thread",
+                {"name": thread_name, "description": "Testing the full cycle."}
+            )
+            assert f"Created new thread '{thread_name}'" in create_result.data
+            thread_id = create_result.data.split("ID: ")[-1]
+            assert thread_id.startswith("thread_")
+
+            # 3. List threads and verify the new thread is present in the DB
+            list_after_create = await client.call_tool("list_threads")
+            assert thread_id in list_after_create.data
+            assert thread_name in list_after_create.data
+
+    finally:
+        # 4. Cleanup: Delete the thread (real API call)
+        if thread_id:
+            async with client:
+                delete_result = await client.call_tool("delete_thread", {"thread_id": thread_id})
+                assert "Successfully deleted" in delete_result.data
+
+                # 5. Verify it's gone from the local DB
+                list_after_delete = await client.call_tool("list_threads")
+                assert thread_id not in list_after_delete.data 
