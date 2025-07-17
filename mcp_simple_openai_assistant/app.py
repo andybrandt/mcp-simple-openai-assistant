@@ -25,9 +25,9 @@ manager: AssistantManager | None = None
 )
 async def create_assistant(name: str, instructions: str, model: str = "gpt-4o") -> str:
     """
-    Create a new OpenAI assistant.
+    Create a new OpenAI assistant to talk to about your desired topic.
 
-    You can provide instructions that this assistant will follow and specify a model.
+    You can provide instructions that this assistant will follow and specify which of OpenAI's models it will use.
     NOTE: It is recommended to check existing assistants with list_assistants before creating a new one.
     """
     if not manager:
@@ -46,7 +46,12 @@ async def create_new_assistant_thread(
 ) -> str:
     """
     Creates a new, persistent conversation thread with a user-defined name and
-    description for easy identification and reuse.
+    description for easy identification and reuse. These threads are stored in OpenAI's servers 
+    and are not deleted unless the user deletes them, which means you can re-use them for future conversations.
+    Additionally, the thread name and description are stored in the local database, which means you can list them
+    and update them later.
+
+    Think how you can utilize threads in your particular use case.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
@@ -60,8 +65,9 @@ async def create_new_assistant_thread(
 @app.tool(annotations={"title": "List Managed Threads", "readOnlyHint": True})
 async def list_threads() -> str:
     """
-    Lists all locally managed conversation threads from the database.
+    Lists all locally saved conversation threads from the database.
     Returns a list of threads with their ID, name, description, and last used time.
+    The thread ID can be used in the ask_assistant_in_thread tool to specify this thread to be continued.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
@@ -89,8 +95,10 @@ async def update_thread(
     thread_id: str, name: Optional[str] = None, description: Optional[str] = None
 ) -> str:
     """
-    Updates the name and/or description of a managed conversation thread.
-    Both the local database and the OpenAI thread object are updated.
+    Updates the name and/or description of a locally saved conversation thread.
+    Both the local database and the OpenAI thread object will be updated.
+
+    The thread ID can be retrieved from the list_threads tool.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
@@ -131,6 +139,11 @@ async def ask_assistant_in_thread(thread_id: str, assistant_id: str, message: st
     """
     Sends a message to an assistant within a specific thread and streams the response.
     This provides progress updates and the final message in a single call.
+
+    Use this to continue a conversation with an assistant in a specific thread.
+    The thread ID can be retrieved from the list_threads tool.
+    The assistant ID can be retrieved from the list_assistants tool.
+    Threads are not inherently linked to a particular assistant, so you can use this tool to talk to any assistant in any thread.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
@@ -161,8 +174,10 @@ async def ask_assistant_in_thread(thread_id: str, assistant_id: str, message: st
 )
 async def list_assistants(limit: int = 20) -> str:
     """
-    List all available OpenAI assistants associated with the API key.
-    Returns a list of assistants with their IDs, names, and configurations.
+    List all available OpenAI assistants associated with the API key configured by the user.
+    
+    Returns a list of assistants with their IDs, names, and configurations. This can be used to select 
+    an assistant to use in the ask_assistant_in_thread tool instead of creating a new one.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
@@ -189,7 +204,8 @@ async def list_assistants(limit: int = 20) -> str:
     }
 )
 async def retrieve_assistant(assistant_id: str) -> str:
-    """Get detailed information about a specific assistant."""
+    """Get detailed information about a specific assistant. 
+       The ID required can be retrieved from the list_assistants tool."""
     if not manager:
         raise ToolError("AssistantManager not initialized.")
     try:
@@ -217,8 +233,10 @@ async def update_assistant(
     model: str = None
 ) -> str:
     """
-    Modify an existing assistant's name, instructions, or model.
-    At least one optional parameter must be provided.
+    Modify an existing assistant's name, instructions, or model used.
+    
+    At least one optional parameter - what to change - must be provided, otherwise the tool will return an error.
+    The ID required can be retrieved from the list_assistants tool.
     """
     if not manager:
         raise ToolError("AssistantManager not initialized.")
