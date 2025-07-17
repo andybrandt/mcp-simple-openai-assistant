@@ -87,6 +87,9 @@ Once configured, you can use the tools listed above to manage your assistants an
 ## TODO
 
 - [x] **Add Thread Management:** Introduce a way to name and persist thread IDs locally, allowing for easier reuse of conversations.
+- [ ] **Add Models Listing:** Introduce a way for the AI user to see what OpenAI models are available for use with the assistants
+- [ ] **Add Assistants Fine Tuning:** Enable the AI user to set detailed parameters for assistants like temperature, top_p etc. (indicated by Claude as needed)
+- [ ] **Full Thread History:** Ability to read past threads without having to send a new message (indicated by Claude as needed)
 - [ ] **Explore Resource Support:** Add the ability to upload files and use them with assistants.
 
 ## Development
