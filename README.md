@@ -4,6 +4,10 @@
 
 A simple MCP server for interacting with OpenAI assistants. This server allows other tools (like Claude Desktop) to create and interact with OpenAI assistants through the Model Context Protocol.
 
+<a href="https://glama.ai/mcp/servers/@andybrandt/mcp-simple-openai-assistant">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@andybrandt/mcp-simple-openai-assistant/badge" alt="Simple OpenAI Assistant MCP server" />
+</a>
+
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/andybrandt/mcp-simple-openai-assistant)](https://archestra.ai/mcp-catalog/andybrandt__mcp-simple-openai-assistant)
 [![smithery badge](https://smithery.ai/badge/mcp-simple-openai-assistant)](https://smithery.ai/mcp/known/mcp-simple-openai-assistant)
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/andybrandt-mcp-simple-openai-assistant-badge.png)](https://mseep.ai/app/andybrandt-mcp-simple-openai-assistant)
