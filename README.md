@@ -28,6 +28,10 @@ Because OpenAI assistants might take quite long to respond, this server uses a s
 
 The server now includes local persistence for threads, which is a significant improvement. Since the OpenAI API does not allow listing threads, this server now manages them for you by storing their IDs and metadata in a local SQLite database. This allows you to easily find, reuse, and manage your conversation threads across sessions.
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/andybrandt-mcp-simple-openai-assistant).
+
 ## Installation
 
 ### Installing via Smithery
